@@ -1,5 +1,6 @@
 package com.onito.tambola.Service;
 
+import com.onito.tambola.CustomException.TambolaValidationException;
 import com.onito.tambola.CustomException.TicketIdNotFoundException;
 import com.onito.tambola.Entity.Ticket;
 import com.onito.tambola.Repository.TicketRepository;
@@ -23,6 +24,8 @@ public class TicketService {
 
     @Autowired
     private TicketRepository ticketRepository;
+    @Autowired
+    private TambolaValidation tambolaValidation;
 
     public Page<Ticket> getAllTickets(Pageable pageable) {
         return ticketRepository.findAll(pageable);
@@ -130,17 +133,24 @@ public class TicketService {
                 }
             }
         }
+        String log= array3dToString(ticket);
+        logger.info(log);
+        return ticket;
+    }
+    String array3dToString(int [][][] ticket)
+    {
+        String log="";
         for(int i=0;i<6;i++)
         {
-            logger.info("ticket hash : "+getArrayHash(ticket[i]));
+            log+="ticket hash : "+getArrayHash(ticket[i])+"\n";
             String arrayData="";
             for(int j=0;j<3;j++)
             {
                 arrayData += Arrays.toString(ticket[i][j])+"\n";
             }
-            logger.info(arrayData+"\n");
+            log+=arrayData+"\n";
         }
-        return ticket;
+        return log;
     }
     public String getArrayHash(int[][] array) {
         try {
@@ -186,32 +196,43 @@ public class TicketService {
         for(int i=0;i<N;i++)
         {
             LinkedList<LinkedList<Integer>> trackNum = generate90Nums();
-            int tambolamTickets[][][] = generate6Tickets(trackNum);
+            int tambolaTickets[][][] = generate6Tickets(trackNum);
             ArrayList<String> ticketHashes = new ArrayList<>();
             for(int j=0;j<6;j++)
             {
-                ticketHashes.add(getArrayHash(tambolamTickets[j]));
+                ticketHashes.add(getArrayHash(tambolaTickets[j]));
             }
             boolean anyExist = existsByArrayHashIn(ticketHashes);
             if (anyExist)
             {//ticket already exists so regenerating tickets
-                logger.warn("ticket already exists so regenerating tickets" + ticketHashes);
+                logger.error("ticket already exists so regenerating tickets" + ticketHashes);
                 i--;
                 continue;
             }
             else
             {
-                UUID groupId = UUID.randomUUID();
-                for(int j=0;j<6;j++)
+                try {
+                    tambolaValidation.validateTambolaSet(tambolaTickets);
+                    UUID groupId = UUID.randomUUID();
+                    for (int j = 0; j < 6; j++) {
+                        Ticket ticket = new Ticket(0l, groupId, LocalDateTime.now(), tambolaTickets[j], ticketHashes.get(j));
+                        ticketsToSave.add(ticket);
+                    }
+                }
+                catch (TambolaValidationException e)
                 {
-                    Ticket ticket=new Ticket(0l, groupId, LocalDateTime.now(), tambolamTickets[j], ticketHashes.get(j));
-                    ticketsToSave.add(ticket);
+                    logger.error(e.getMessage());
+                    i--;
+                    continue;
+
                 }
             }
         }
-        try {
+        try
+        {
             ticketsToSave = saveAll(ticketsToSave);
-        }catch (DataIntegrityViolationException e)
+        }
+        catch (DataIntegrityViolationException e)
         {
             logger.error("Duplicate ticket already exists in same Tambola set" );
             throw e;
@@ -221,4 +242,5 @@ public class TicketService {
         }
         return responseMap;
     }
+
 }

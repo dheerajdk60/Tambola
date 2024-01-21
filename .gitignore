@@ -38,3 +38,4 @@ mvnw.cmd
 .DS_Store
 db.mv.db
 logs/
+db.trace.db
