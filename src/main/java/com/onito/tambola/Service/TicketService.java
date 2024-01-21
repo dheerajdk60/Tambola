@@ -3,6 +3,8 @@ package com.onito.tambola.Service;
 import com.onito.tambola.CustomException.TicketIdNotFoundException;
 import com.onito.tambola.Entity.Ticket;
 import com.onito.tambola.Repository.TicketRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -17,6 +19,8 @@ import java.util.*;
 
 @Service
 public class TicketService {
+    private static final Logger logger = LoggerFactory.getLogger(TicketService.class);
+
     @Autowired
     private TicketRepository ticketRepository;
 
@@ -128,13 +132,13 @@ public class TicketService {
         }
         for(int i=0;i<6;i++)
         {
-            System.out.println(getArrayHash(ticket[i]));
+            logger.info("ticket hash : "+getArrayHash(ticket[i]));
+            String arrayData="";
             for(int j=0;j<3;j++)
             {
-                System.out.println(Arrays.toString(ticket[i][j]));
+                arrayData += Arrays.toString(ticket[i][j])+"\n";
             }
-            System.out.println();
-            System.out.println();
+            logger.info(arrayData+"\n");
         }
         return ticket;
     }
@@ -147,9 +151,9 @@ public class TicketService {
             for (byte b : hashBytes) {
                 sb.append(String.format("%02x", b));
             }
-
             return sb.toString();
         } catch (NoSuchAlgorithmException e) {
+            logger.error("NoSuchAlgorithmException for SHA-256");
             e.printStackTrace();
             return null;
         }
@@ -191,7 +195,7 @@ public class TicketService {
             boolean anyExist = existsByArrayHashIn(ticketHashes);
             if (anyExist)
             {//ticket already exists so regenerating tickets
-                System.out.println("ticket already exists so regenerating tickets" + ticketHashes);
+                logger.warn("ticket already exists so regenerating tickets" + ticketHashes);
                 i--;
                 continue;
             }
@@ -209,6 +213,7 @@ public class TicketService {
             ticketsToSave = saveAll(ticketsToSave);
         }catch (DataIntegrityViolationException e)
         {
+            logger.error("Duplicate ticket already exists in same Tambola set" );
             throw e;
         }
         for (Ticket t: ticketsToSave) {

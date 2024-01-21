@@ -37,3 +37,4 @@ mvnw
 mvnw.cmd
 .DS_Store
 db.mv.db
+logs/
