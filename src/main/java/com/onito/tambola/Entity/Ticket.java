@@ -1,5 +1,6 @@
 package com.onito.tambola.Entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -7,7 +8,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.Arrays;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -16,10 +18,16 @@ import java.util.List;
 @Entity
 public class Ticket {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.TABLE)
     private Long id;
+    @JsonIgnore
+    private UUID groupId;
+    @JsonIgnore
     private LocalDateTime createdAt;
     @ElementCollection
     @Column(name = "number")
-    private List<List<Integer>> ticket;
+    private int[][] ticket;
+    @JsonIgnore
+    @Column(unique = true)
+    private String arrayHash;
 }
